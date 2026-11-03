@@ -1,0 +1,79 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Portal Pericial</title>
+<style>
+:root{--bg:#0b1220;--card:#131d33;--ac:#00c2ff;--ac2:#7c5cff;--tx:#e8eefc;--mu:#8fa0c4}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--tx)}
+header{height:240px;background:linear-gradient(#0004,#0b1220cc),url(header.jpg) center 60%/cover;position:relative;display:flex;align-items:flex-end;padding:16px 20px}
+header h1{margin:0;font-size:clamp(1.4rem,4vw,2.4rem);text-shadow:0 2px 8px #000}
+#burger{position:absolute;top:14px;left:14px;background:var(--ac);border:0;border-radius:8px;font-size:1.5rem;padding:6px 12px;cursor:pointer}
+#hdrbtn{position:absolute;top:14px;right:14px;display:none}
+#drawer{position:fixed;top:0;left:-290px;width:280px;height:100%;background:var(--card);padding:20px 14px;transition:.3s;z-index:20;overflow:auto;border-right:2px solid var(--ac)}
+#drawer.open{left:0}#drawer h3{color:var(--ac);margin:8px 0}
+.btn{display:flex;align-items:center;gap:10px;width:100%;background:#1b2848;color:var(--tx);border:1px solid #2a3a66;border-radius:10px;padding:14px;margin:6px 0;cursor:pointer;font-size:1rem;text-decoration:none}
+.btn:hover{border-color:var(--ac);transform:translateY(-1px)}.btn.sm{padding:8px 10px;font-size:.85rem;justify-content:space-between;flex-direction:row-reverse}
+main{display:flex;gap:20px;padding:20px;flex-wrap:wrap;align-items:flex-start;justify-content:center}
+#panel{width:9cm;height:12cm;background:var(--card);border:1px solid #2a3a66;border-radius:10px;padding:.25cm;display:flex;flex-direction:column;justify-content:space-between;flex:none}
+.ph{background:#0f1830 center/cover no-repeat;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--mu);font-size:.75rem;text-align:center}
+#big{width:8.5cm;height:7.5cm}#row{width:8.5cm;height:3cm;display:flex;gap:.5cm}#row .ph{flex:1}
+.lb{height:.55cm;text-align:center;font-weight:700;font-size:.8rem;color:var(--ac);line-height:.55cm}
+#grid{flex:1;min-width:260px;max-width:520px}#side{width:210px}
+.edit .ph,.edit .btn,.edit .lb,.edit h2{outline:1px dashed var(--ac2);cursor:pointer}
+#editbtn{position:fixed;right:12px;bottom:12px;font-size:.7rem;padding:6px 10px;background:var(--ac2);color:#fff;border:0;border-radius:6px;cursor:pointer;z-index:10}
+#vis{position:fixed;left:12px;bottom:12px;background:var(--card);padding:6px 12px;border-radius:20px;border:1px solid #2a3a66}
+#login{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;z-index:30}
+#login div{background:var(--card);padding:24px;border-radius:12px;width:300px}
+input{width:100%;padding:10px;margin:6px 0;border-radius:6px;border:1px solid #2a3a66;background:#0f1830;color:var(--tx)}
+.link{color:var(--ac);cursor:pointer;font-size:.8rem}
+</style></head><body>
+<header id="hdr"><button id="burger">☰</button><button id="hdrbtn" class="btn" style="width:auto">📷 Cambiar fondo</button><h1 data-k="title" data-e>Portal de Servicios Periciales</h1></header>
+<aside id="drawer"></aside>
+<main><section id="panel">
+<div class="ph" id="big" data-img="big">Foto principal</div><div class="lb" data-k="l1" data-e>Excelencia Pericial del Mes</div>
+<div id="row"><div class="ph" data-img="s1">Foto</div><div class="ph" data-img="s2">Foto</div><div class="ph" data-img="s3">Foto</div></div>
+<div class="lb" data-k="l2" data-e>Peritos Destacados</div></section>
+<section id="grid"><h2 data-k="h2" data-e>Servicios en línea</h2><div id="mainbtns"></div></section>
+<section id="side"><h2 data-k="h3" data-e>Accesos</h2><div id="smallbtns"></div></section></main>
+<div id="vis">👁 <span id="vn">0</span></div>
+<button id="editbtn">EDIT</button>
+<div id="login"><div><h3>Acceso administrador</h3><input id="u" placeholder="Usuario"><input id="p" type="password" placeholder="Contraseña"><button class="btn" id="go" style="justify-content:center">Entrar</button><span class="link" id="forgot">Olvidé mi contraseña</span><br><span class="link" id="cancel">Cancelar</span></div></div>
+<input type="file" id="file" accept="image/*" hidden>
+<script>
+let TOKEN=sessionStorage.getItem("tk")||"";
+const D={title:"Portal de Servicios Periciales",h2:"Servicios en línea",h3:"Accesos",l1:"Excelencia Pericial del Mes",l2:"Peritos Destacados",
+main:[["🔍","Consultas de Pericias","#"],["📚","Biblioteca","#"],["✉️","Contactos","#"],["📊","Estadística / Siniestralidad","#"],["➕","Otros","#"]],
+small:[["🏛️","Jefaturas Provinciales","#"],["🧑‍⚕️","Personas Siniestradas","#"],["📰","Noticias","#"],["⛅","Consultar Clima","#"]],img:{}};
+let S=D;
+let admin=false;const $=s=>document.querySelector(s);
+let sv;const save=()=>{clearTimeout(sv);sv=setTimeout(async()=>{try{const r=await fetch("/api/state",{method:"POST",headers:{Authorization:"Bearer "+TOKEN},body:JSON.stringify(S)});if(r.status==401){alert("Sesión vencida. Pulsa EDIT y entra de nuevo");setAdmin(false)}else if(!r.ok)alert("No se pudo guardar")}catch(e){alert("Sin conexión: no se guardó")}},400)};
+function render(){
+ document.querySelectorAll("[data-k]").forEach(e=>e.textContent=S[e.dataset.k]);
+ const mk=(a,c)=>a.map((b,i)=>`<a class="btn ${c}" data-i="${i}" data-c="${c}" href="${b[2]}" ${b[2]=="#"?"":'target="_blank"'}><span>${b[0]}</span><span>${b[1]}</span></a>`).join("");
+ $("#mainbtns").innerHTML=mk(S.main,"");$("#smallbtns").innerHTML=mk(S.small,"sm");
+ $("#drawer").innerHTML="<h3>Menú</h3>"+mk(S.main,"")+"<h3>Accesos</h3>"+mk(S.small,"sm");
+ document.querySelectorAll("[data-img]").forEach(e=>{const u=S.img[e.dataset.img];e.style.backgroundImage=u?`url(${u})`:"";if(u)e.textContent=""});
+ if(S.img.hdr)$("#hdr").style.backgroundImage=`linear-gradient(#0006,#0b1220cc),url(${S.img.hdr})`;
+}
+$("#burger").onclick=()=>$("#drawer").classList.toggle("open");
+document.addEventListener("click",e=>{
+ if(!admin)return;const b=e.target.closest(".btn[data-i]");
+ if(b){e.preventDefault();const a=b.dataset.c?S.small:S.main,i=b.dataset.i;
+  const t=prompt("Texto del botón (puede incluir números):",a[i][1]);if(t===null)return;
+  const ic=prompt("Icono (emoji):",a[i][0]);const l=prompt("Enlace (https://...):",a[i][2]);
+  a[i]=[ic||a[i][0],t,l||"#"];save();render()}
+});
+let target;document.addEventListener("click",e=>{if(!admin)return;const p=e.target.closest("[data-img]");if(p){target=p.dataset.img;$("#file").click()}});
+$("#hdrbtn").onclick=()=>{target="hdr";$("#file").click()};
+$("#file").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{
+ const c=document.createElement("canvas"),m=1000,s=Math.min(1,m/im.width);c.width=im.width*s;c.height=im.height*s;c.getContext("2d").drawImage(im,0,0,c.width,c.height);
+ S.img[target]=c.toDataURL("image/jpeg",.75);save();render()};im.src=r.result};r.readAsDataURL(f);e.target.value=""};
+async function sha(s){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")}
+function setAdmin(v){admin=v;document.body.classList.toggle("edit",v);$("#hdrbtn").style.display=v?"block":"none";$("#editbtn").textContent=v?"SALIR":"EDIT";
+ document.querySelectorAll("[data-e]").forEach(e=>{e.contentEditable=v;e.onblur=()=>{S[e.dataset.k]=e.textContent;save()}})}
+$("#editbtn").onclick=()=>admin?setAdmin(false):$("#login").style.display="flex";
+$("#cancel").onclick=()=>$("#login").style.display="none";
+$("#go").onclick=async()=>{try{const r=await fetch("/api/login",{method:"POST",body:JSON.stringify({u:$("#u").value,p:$("#p").value})});if(!r.ok)return alert("Usuario o contraseña incorrectos");TOKEN=(await r.json()).token;sessionStorage.setItem("tk",TOKEN);$("#login").style.display="none";$("#p").value="";setAdmin(true)}catch(e){alert("Sin conexión con el servidor")}};
+$("#forgot").onclick=async()=>{try{const r=await fetch("/api/reset",{method:"POST"});alert(r.ok?"Enviamos una contraseña temporal a stannarbaker@gmail.com":r.status==429?"Espera 10 minutos antes de pedir otra":"No se pudo enviar el correo")}catch(e){alert("Sin conexión")}};
+fetch("/api/visits",{method:sessionStorage.getItem("seen")?"GET":"POST"}).then(r=>r.json()).then(j=>{$("#vn").textContent=j.n;sessionStorage.setItem("seen",1)}).catch(()=>{});
+render();
+fetch("/api/state").then(r=>r.json()).then(j=>{S=Object.assign({},D,j);render()}).catch(()=>{});
+</script></body></html>
